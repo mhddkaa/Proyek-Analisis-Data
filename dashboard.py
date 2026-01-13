@@ -167,7 +167,7 @@ ax.set_ylabel("Rata-rata Jumlah Peminjaman")
 st.pyplot(fig)
 
 # TIME CLUSTER
-st.subheader("🕒 Klaster Waktu Peminjaman")
+st.subheader("🕒 Cluster Waktu Peminjaman")
 
 def hour_cluster(hr):
     if hr in range(7,10):
@@ -201,7 +201,7 @@ sns.barplot(
     order=order,
     legend=False
 )
-ax.set_xlabel("Klaster Waktu")
+ax.set_xlabel("Cluster Waktu")
 ax.set_ylabel("Rata-rata Peminjaman")
 st.pyplot(fig)
 
@@ -230,4 +230,5 @@ ax.set_ylabel("Season")
 st.pyplot(fig)
 
 st.caption("Bike Sharing Analysis • Dicoding Submission")
+
 
