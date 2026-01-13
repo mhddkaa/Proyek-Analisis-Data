@@ -48,12 +48,27 @@ with col3:
 # DAILY TREND
 st.subheader("📈 Tren Peminjaman Harian")
 
-daily_df = main_df.groupby("dteday")["cnt"].sum().reset_index()
+daily_df = main_df.groupby(["dteday", "yr"])["cnt"].sum().reset_index()
 
 fig, ax = plt.subplots(figsize=(14,6))
-sns.lineplot(data=daily_df, x="dteday", y="cnt")
+
+for yr, label in [(0, "2011"), (1, "2012")]:
+    subset = daily_df[daily_df["yr"] == yr]
+    ax.plot(subset["dteday"], subset["cnt"], label=label)
+
+max_day = daily_df.loc[daily_df["cnt"].idxmax()]
+ax.scatter(max_day["dteday"], max_day["cnt"])
+ax.annotate(
+    f"Puncak: {int(max_day['cnt'])}",
+    (max_day["dteday"], max_day["cnt"]),
+    xytext=(10,10),
+    textcoords="offset points"
+)
+
+ax.set_title("Tren Peminjaman Sepeda Harian (2011–2012)")
 ax.set_xlabel("Tanggal")
 ax.set_ylabel("Jumlah Peminjaman")
+ax.legend(title="Tahun")
 st.pyplot(fig)
 
 # SEASON ANALYSIS
@@ -244,5 +259,6 @@ sns.countplot(
 ax.set_xlabel("Dominasi Pengguna")
 ax.set_ylabel("Jumlah Jam")
 st.pyplot(fig)
+
 
 st.caption("Bike Sharing Analysis • Dicoding Submission")
