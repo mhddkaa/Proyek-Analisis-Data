@@ -210,7 +210,7 @@ st.subheader("🗺️ Pola Peminjaman: Musim vs Hari")
 
 season_weekday = main_df.pivot_table(
     values="cnt",
-    index="season",
+    index="season_hour",
     columns="weekday",
     aggfunc="mean"
 )
@@ -230,3 +230,4 @@ ax.set_ylabel("Season")
 st.pyplot(fig)
 
 st.caption("Bike Sharing Analysis • Dicoding Submission")
+
