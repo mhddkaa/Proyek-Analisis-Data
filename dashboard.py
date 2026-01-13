@@ -89,51 +89,58 @@ sns.barplot(
     y="cnt",
     hue="season_hour",
     palette=palette,
-    legend=False
+    legend=False,
+    ax=ax
 )
+
+ax.set_title("Peminjaman Sepeda Berdasarkan Musim (2011–2012)")
 ax.set_xlabel("Musim")
-ax.set_ylabel("Rata-rata Peminjaman")
+ax.set_ylabel("Rata-rata Jumlah Peminjaman")
 st.pyplot(fig)
 
 # USER CONTRIBUTION
 st.subheader("👤 Kontribusi Casual vs Registered")
 
-daily_user_mean = main_df[["casual", "registered"]].mean().reset_index()
-daily_user_mean.columns = ["User Type", "Average Count"]
+yearly = main_df.groupby("yr")[["casual", "registered", "cnt"]].sum().reset_index()
+yearly["yr"] = yearly["yr"].map({0: "2011", 1: "2012"})
 
-palette = {
-    "casual": "#D3D3D3",
-    "registered": "#72BCD4"
-}
-
-fig, ax = plt.subplots(figsize=(7,5))
-sns.barplot(
-    data=daily_user_mean,
-    x="User Type",
-    y="Average Count",
-    hue="User Type",
-    palette=palette,
-    legend=False
+yearly_melt = yearly.melt(
+    id_vars=["yr", "cnt"],
+    value_vars=["casual", "registered"],
+    var_name="User Type",
+    value_name="Total Peminjaman"
 )
-ax.set_xlabel("Tipe Pengguna")
-ax.set_ylabel("Rata-rata Peminjaman")
+
+fig, ax = plt.subplots(figsize=(8,5))
+sns.barplot(
+    data=yearly_melt,
+    x="yr",
+    y="Total Peminjaman",
+    hue="User Type",
+    ax=ax
+)
+
+ax.ticklabel_format(style='plain', axis='y')
+ax.set_title("Kontribusi Pengguna Casual vs Registered\n(2011–2012)")
+ax.set_xlabel("Tahun")
+ax.set_ylabel("Jumlah Peminjaman")
 st.pyplot(fig)
 
 # WORKINGDAY vs WEEKEND
 st.subheader("⏰ Pola Jam: Hari Kerja vs Akhir Pekan")
 
-fig, ax = plt.subplots(figsize=(12,6))
-sns.lineplot(
-    data=main_df,
-    x="hr",
-    y="cnt",
-    hue="workingday",
-    estimator="mean",
-    ci=None
-)
-ax.legend(title="Working Day", labels=["Akhir Pekan", "Hari Kerja"])
+hour_pattern = main_df.groupby(["hr", "workingday"])["cnt"].mean().reset_index()
+
+fig, ax = plt.subplots(figsize=(10,5))
+
+for wd, label in [(0, "Akhir Pekan"), (1, "Hari Kerja")]:
+    subset = hour_pattern[hour_pattern["workingday"] == wd]
+    ax.plot(subset["hr"], subset["cnt"], marker="o", label=label)
+
+ax.set_title("Peminjaman Sepeda per Jam (2011–2012)")
 ax.set_xlabel("Jam")
 ax.set_ylabel("Rata-rata Peminjaman")
+ax.legend()
 st.pyplot(fig)
 
 # WEATHER IMPACT (RUSH HOUR)
@@ -144,54 +151,19 @@ rush_hour = main_df[
     (main_df["hr"].between(16,18))
 ]
 
-palette = {
-    1: "#72BCD4",
-    2: "#D3D3D3",
-    3: "#D3D3D3",
-    4: "#D3D3D3"
-}
-
-fig, ax = plt.subplots(figsize=(8,5))
+fig, ax = plt.subplots(figsize=(10,5))
 sns.barplot(
     data=rush_hour,
-    x="weathersit",
+    x="hr",
     y="cnt",
-    estimator="mean",
     hue="weathersit",
-    palette=palette,
-    legend=False
-)
-ax.set_xlabel("Kondisi Cuaca")
-ax.set_ylabel("Rata-rata Peminjaman")
-st.pyplot(fig)
-
-# DEMAND CLUSTER
-st.subheader("📊 Clustering Permintaan Harian")
-
-daily_demand = main_df.groupby("dteday")["cnt"].sum().reset_index()
-
-daily_demand["demand_level"] = pd.cut(
-    daily_demand["cnt"],
-    bins=[0, 2000, 5000, daily_demand["cnt"].max()],
-    labels=["Low Demand", "Medium Demand", "High Demand"]
+    estimator="mean",
+    ax=ax
 )
 
-palette = {
-    "Low Demand": "#D3D3D3",
-    "Medium Demand": "#72BCD4",
-    "High Demand": "#D3D3D3"
-}
-
-fig, ax = plt.subplots(figsize=(7,5))
-sns.countplot(
-    data=daily_demand,
-    x="demand_level",
-    hue="demand_level",
-    palette=palette,
-    legend=False
-)
-ax.set_xlabel("Tingkat Permintaan")
-ax.set_ylabel("Jumlah Hari")
+ax.set_title("Rata-rata Peminjaman pada Jam Sibuk\nBerdasarkan Jam & Cuaca")
+ax.set_xlabel("Jam")
+ax.set_ylabel("Rata-rata Jumlah Peminjaman")
 st.pyplot(fig)
 
 # TIME CLUSTER
@@ -213,7 +185,7 @@ order = ["Morning Rush", "Daytime", "Evening Rush", "Night / Off Peak"]
 
 palette = {
     "Morning Rush": "#D3D3D3",
-    "Evening Rush": "#4FA3C7",
+    "Evening Rush": "#72BCD4",
     "Daytime": "#D3D3D3",
     "Night / Off Peak": "#D3D3D3"
 }
@@ -233,32 +205,28 @@ ax.set_xlabel("Klaster Waktu")
 ax.set_ylabel("Rata-rata Peminjaman")
 st.pyplot(fig)
 
-# USER DOMINANCE
-st.subheader("👥 Dominasi Pengguna per Jam")
+# SPATIAL PROXY ANALYSIS (Season vs Weekday)
+st.subheader("🗺️ Pola Peminjaman: Musim vs Hari")
 
-main_df["user_dominance"] = main_df.apply(
-    lambda x: "Registered Dominant"
-    if x["registered"] > x["casual"]
-    else "Casual Dominant",
-    axis=1
+season_weekday = main_df.pivot_table(
+    values="cnt",
+    index="season",
+    columns="weekday",
+    aggfunc="mean"
 )
 
-palette = {
-    "Registered Dominant": "#72BCD4",
-    "Casual Dominant": "#D3D3D3"
-}
-
-fig, ax = plt.subplots(figsize=(7,5))
-sns.countplot(
-    data=main_df,
-    x="user_dominance",
-    hue="user_dominance",
-    palette=palette,
-    legend=False
+fig, ax = plt.subplots(figsize=(10,6))
+sns.heatmap(
+    season_weekday,
+    annot=True,
+    fmt=".0f",
+    cmap="YlGnBu",
+    ax=ax
 )
-ax.set_xlabel("Dominasi Pengguna")
-ax.set_ylabel("Jumlah Jam")
+ax.set_title("Heatmap Rata-rata Peminjaman\nMusim vs Hari")
+ax.set_xlabel("Weekday")
+ax.set_ylabel("Season")
+
 st.pyplot(fig)
-
 
 st.caption("Bike Sharing Analysis • Dicoding Submission")
